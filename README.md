@@ -4,33 +4,33 @@ Official platform for **DevNation**, a university developer club. **dn-orbit** i
 
 ## Project Modules
 
-| # | Module | Key Responsibility |
-|---|--------|--------------------|
+| # | Module            | Key Responsibility                                             |
+| - | ----------------- | -------------------------------------------------------------- |
 | 1 | Auth & Onboarding | GitHub OAuth, session management, and onboarding profile setup |
-| 2 | GitHub Stats | GitHub API integration and statistic caching |
-| 3 | LeetCode Stats | LeetCode public GraphQL API integration and caching |
-| 4 | Leaderboard | Scoring engine, nightly computation cron, and UI |
-| 5 | CMS — Events | Event management (CRUD), registration, and feedback |
-| 6 | Members Section | Public member directory, bios, and visibility controls |
-| 7 | Admin Panel | Role-Based Access Control (RBAC) and administrative dashboards |
-| 8 | Infra & DevOps | Schema management, CI/CD, and Vercel environment setup |
-| 9 | Projects Showcase | Project submission, approval workflow, and milestone tracking |
+| 2 | GitHub Stats      | GitHub API integration and statistic caching                   |
+| 3 | LeetCode Stats    | LeetCode public GraphQL API integration and caching            |
+| 4 | Leaderboard       | Scoring engine, nightly computation cron, and UI               |
+| 5 | CMS — Events     | Event management (CRUD), registration, and feedback            |
+| 6 | Members Section   | Public member directory, bios, and visibility controls         |
+| 7 | Admin Panel       | Role-Based Access Control (RBAC) and administrative dashboards |
+| 8 | Infra & DevOps    | Schema management, CI/CD, and Vercel environment setup         |
+| 9 | Projects Showcase | Project submission, approval workflow, and milestone tracking  |
 
 ---
 
 ## Technical Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Framework** | Next.js 16.2.1 (App Router) |
-| **Language** | TypeScript (Strict Mode) |
-| **UI** | React 19.2.4, Tailwind CSS v4 |
-| **Database** | Neon (PostgreSQL, Serverless) |
-| **ORM** | Prisma 7 |
-| **Auth** | NextAuth.js (GitHub OAuth only) |
-| **Deployment** | Vercel |
-| **Package Manager** | Bun |
-| **Linting** | ESLint 9 |
+| Layer                     | Technology                      |
+| ------------------------- | ------------------------------- |
+| **Framework**       | Next.js 16.2.1 (App Router)     |
+| **Language**        | TypeScript (Strict Mode)        |
+| **UI**              | React 19.2.4, Tailwind CSS v4   |
+| **Database**        | Neon (PostgreSQL, Serverless)   |
+| **ORM**             | Prisma 7                        |
+| **Auth**            | NextAuth.js (GitHub OAuth only) |
+| **Deployment**      | Vercel                          |
+| **Package Manager** | Bun                             |
+| **Linting**         | ESLint 9                        |
 
 ---
 
@@ -39,13 +39,9 @@ Official platform for **DevNation**, a university developer club. **dn-orbit** i
 ```text
 app/
   (auth)/             # login page, OAuth callback
-  (dashboard)/        # protected member-facing pages
-    leaderboard/
-    projects/
-    events/
-    members/
-  admin/              # admin-only pages (RBAC enforced by middleware)
-  api/                # Route Handlers only
+  (dashboard)/        # protected member-facing pages (leaderboard, projects, etc.)
+  admin/              # admin-only pages (RBAC enforced)
+  api/                # Route Handlers only (no page.tsx files)
   layout.tsx          # root layout
   globals.css
 
@@ -55,8 +51,8 @@ components/
   features/           # module-specific components
 
 lib/
-  db.ts               # Prisma client singleton (always import from here)
-  auth.ts             # Auth and session helpers
+  db.ts               # Prisma client singleton (import from here)
+  auth.ts             # Auth and session helpers (session, role checks)
   utils.ts            # shared utilities
 
 prisma/
@@ -89,24 +85,36 @@ prisma/
    ```
 
 ### Database & ORM
+
 - **Singleton Pattern**: Always import `db` from `@/lib/db`.
-- **No Raw SQL**: All database access must go through the Prisma ORM.
-- **Prisma Studio**: Use `bunx prisma studio` for a visual database browser.
+- **No Raw SQL**: All database access must go through Prisma.
+- **Constraints**:
+  - `registrations`: Unique on `(userId, eventId)`.
+  - `feedback`: Unique on `(userId, eventId)`.
+  - `project_members`: Unique on `(projectId, userId)`.
 
 ### Auth & Roles
-- **Provider**: GitHub OAuth is the only supported authentication method.
-- **Roles**: `admin` and `member`. Admin access is required for any `/admin/*` routes.
-- **Middleware**: Authentication and RBAC are enforced at the middleware layer.
 
-### Stats Fetching & Leaderboard
-- **Cache Pattern**: Stats (GitHub/LeetCode) are cached for 24 hours. Refetch only if `fetched_at` is stale.
-- **Nightly Scoring**: Leaderboard scores are computed nightly via cron jobs. Never compute scores on-the-fly for the leaderboard UI.
+- **Provider**: GitHub OAuth is the only supported method.
+- **Roles**: `admin` and `member` (stored in `users.role`).
+- **Middleware**: Authentication and RBAC are enforced for `/admin/*` and protected routes.
+- **Onboarding**: Users with no `usn` are redirected to `/onboarding`.
+
+### Stats & Leaderboard
+
+- **Cache Pattern**: Stats are cached for 24 hours. Check `fetched_at` before refetching from external APIs.
+- **Leaderboard Formula**: Computed nightly via cron.
+  - `LC Score = (easy×1 + medium×3 + hard×5)` (normalised 0–100)
+  - `GitHub Score = (commits + PRs×2 + stars)` (normalised 0–100)
+  - `Event Score = (attended / total_events) × 100`
+  - `Total = (lcScore × lcWeight) + (githubScore × githubWeight) + (eventScore × eventWeight)`
 
 ### Code Conventions
-- **Exports**: Use named exports for components (except for `page.tsx` and `layout.tsx`).
-- **Boundaries**: Modules should only share data via the database or internal API routes.
+
+- **Exports**: Use named exports (except for `page.tsx` and `layout.tsx`).
+- **Boundaries**: Modules must only share data via the database.
 - **Strict Typing**: No `any` types; no non-null assertions without justification.
-- **Styling**: Use Tailwind CSS v4 utility classes exclusively.
+- **Styling**: Use Tailwind CSS v4 utility classes exclusively. No inline styles.
 
 ---
 
@@ -114,8 +122,8 @@ prisma/
 
 The following variables must be configured in your `.env` file:
 
-- `DATABASE_URL`: Pooled connection string for queries.
+- `DATABASE_URL`: Pooled connection string.
 - `DIRECT_URL`: Direct connection string for migrations.
 - `NEXTAUTH_SECRET`: Random secret for session encryption.
-- `NEXTAUTH_URL`: Canonical URL of the application.
-- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`: GitHub OAuth application credentials.
+- `NEXTAUTH_URL`: Canonical application URL.
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`: GitHub OAuth credentials.
