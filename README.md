@@ -1,36 +1,121 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# dn-orbit
 
-## Getting Started
+Official platform for **DevNation**, a university developer club. **dn-orbit** is a full-stack web application designed to manage club activities, track member contributions (GitHub & LeetCode), and showcase projects.
 
-First, run the development server:
+## Project Modules
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| # | Module | Key Responsibility |
+|---|--------|--------------------|
+| 1 | Auth & Onboarding | GitHub OAuth, session management, and onboarding profile setup |
+| 2 | GitHub Stats | GitHub API integration and statistic caching |
+| 3 | LeetCode Stats | LeetCode public GraphQL API integration and caching |
+| 4 | Leaderboard | Scoring engine, nightly computation cron, and UI |
+| 5 | CMS — Events | Event management (CRUD), registration, and feedback |
+| 6 | Members Section | Public member directory, bios, and visibility controls |
+| 7 | Admin Panel | Role-Based Access Control (RBAC) and administrative dashboards |
+| 8 | Infra & DevOps | Schema management, CI/CD, and Vercel environment setup |
+| 9 | Projects Showcase | Project submission, approval workflow, and milestone tracking |
+
+---
+
+## Technical Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Next.js 16.2.1 (App Router) |
+| **Language** | TypeScript (Strict Mode) |
+| **UI** | React 19.2.4, Tailwind CSS v4 |
+| **Database** | Neon (PostgreSQL, Serverless) |
+| **ORM** | Prisma 7 |
+| **Auth** | NextAuth.js (GitHub OAuth only) |
+| **Deployment** | Vercel |
+| **Package Manager** | Bun |
+| **Linting** | ESLint 9 |
+
+---
+
+## Project Structure
+
+```text
+app/
+  (auth)/             # login page, OAuth callback
+  (dashboard)/        # protected member-facing pages
+    leaderboard/
+    projects/
+    events/
+    members/
+  admin/              # admin-only pages (RBAC enforced by middleware)
+  api/                # Route Handlers only
+  layout.tsx          # root layout
+  globals.css
+
+components/
+  ui/                 # primitive UI components
+  layout/             # shell components (Navbar, Sidebar)
+  features/           # module-specific components
+
+lib/
+  db.ts               # Prisma client singleton (always import from here)
+  auth.ts             # Auth and session helpers
+  utils.ts            # shared utilities
+
+prisma/
+  schema.prisma       # database schema source of truth
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Development Guidelines
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Getting Started
 
-## Learn More
+1. **Install dependencies**:
+   ```bash
+   bun install
+   ```
+2. **Setup environment**:
+   ```bash
+   cp .env.example .env
+   # Fill in DATABASE_URL, NEXTAUTH_SECRET, and GITHUB keys
+   ```
+3. **Database initialization**:
+   ```bash
+   bunx prisma generate
+   bunx prisma migrate dev
+   ```
+4. **Run development server**:
+   ```bash
+   bun dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+### Database & ORM
+- **Singleton Pattern**: Always import `db` from `@/lib/db`.
+- **No Raw SQL**: All database access must go through the Prisma ORM.
+- **Prisma Studio**: Use `bunx prisma studio` for a visual database browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Auth & Roles
+- **Provider**: GitHub OAuth is the only supported authentication method.
+- **Roles**: `admin` and `member`. Admin access is required for any `/admin/*` routes.
+- **Middleware**: Authentication and RBAC are enforced at the middleware layer.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Stats Fetching & Leaderboard
+- **Cache Pattern**: Stats (GitHub/LeetCode) are cached for 24 hours. Refetch only if `fetched_at` is stale.
+- **Nightly Scoring**: Leaderboard scores are computed nightly via cron jobs. Never compute scores on-the-fly for the leaderboard UI.
 
-## Deploy on Vercel
+### Code Conventions
+- **Exports**: Use named exports for components (except for `page.tsx` and `layout.tsx`).
+- **Boundaries**: Modules should only share data via the database or internal API routes.
+- **Strict Typing**: No `any` types; no non-null assertions without justification.
+- **Styling**: Use Tailwind CSS v4 utility classes exclusively.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Environment Variables
+
+The following variables must be configured in your `.env` file:
+
+- `DATABASE_URL`: Pooled connection string for queries.
+- `DIRECT_URL`: Direct connection string for migrations.
+- `NEXTAUTH_SECRET`: Random secret for session encryption.
+- `NEXTAUTH_URL`: Canonical URL of the application.
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`: GitHub OAuth application credentials.
