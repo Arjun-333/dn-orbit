@@ -1,0 +1,241 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum Role {
+  admin
+  member
+}
+
+enum ProjectStatus {
+  planning
+  active
+  completed
+  stalled
+}
+
+// ─────────────────────────────────────────────
+// USERS — central hub
+// ─────────────────────────────────────────────
+
+model User {
+  id              String   @id @default(uuid())
+  githubId        String   @unique @map("github_id")
+  githubUsername  String   @unique @map("github_username")
+  email           String   @unique
+  name            String
+  avatarUrl       String?  @map("avatar_url")
+  role            Role     @default(member)
+
+  // Onboarding fields
+  lcUsername      String?  @map("lc_username")
+  branch          String?
+  year            Int?
+  usn             String?
+  bio             String?
+  isVisible       Boolean  @default(true) @map("is_visible")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  githubStats       GithubStats[]
+  lcStats           LcStats[]
+  leaderboardScore  LeaderboardScore?
+  createdEvents     Event[]           @relation("EventCreator")
+  registrations     Registration[]
+  feedback          Feedback[]
+  ledProjects       Project[]         @relation("ProjectLead")
+  projectMemberships ProjectMember[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// GITHUB STATS
+// ─────────────────────────────────────────────
+
+model GithubStats {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  reposCount   Int      @default(0) @map("repos_count")
+  totalCommits Int      @default(0) @map("total_commits")
+  totalPrs     Int      @default(0) @map("total_prs")
+  totalStars   Int      @default(0) @map("total_stars")
+  topLanguages Json     @default("[]") @map("top_languages") // string[]
+  fetchedAt    DateTime @default(now()) @map("fetched_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("github_stats")
+}
+
+// ─────────────────────────────────────────────
+// LEETCODE STATS
+// ─────────────────────────────────────────────
+
+model LcStats {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  totalSolved  Int      @default(0) @map("total_solved")
+  easySolved   Int      @default(0) @map("easy_solved")
+  mediumSolved Int      @default(0) @map("medium_solved")
+  hardSolved   Int      @default(0) @map("hard_solved")
+  lcRanking    Int?     @map("lc_ranking")
+  streak       Int      @default(0)
+  fetchedAt    DateTime @default(now()) @map("fetched_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("lc_stats")
+}
+
+// ─────────────────────────────────────────────
+// EVENTS
+// ─────────────────────────────────────────────
+
+model Event {
+  id          String   @id @default(uuid())
+  createdBy   String   @map("created_by")
+  title       String
+  description String?
+  bannerUrl   String?  @map("banner_url")
+  eventType   String?  @map("event_type")
+  eventDate   DateTime @map("event_date")
+  location    String?
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  creator       User           @relation("EventCreator", fields: [createdBy], references: [id])
+  registrations Registration[]
+  feedback      Feedback[]
+
+  @@map("events")
+}
+
+// ─────────────────────────────────────────────
+// REGISTRATIONS (User <-> Event junction)
+// ─────────────────────────────────────────────
+
+model Registration {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  eventId      String   @map("event_id")
+  attended     Boolean  @default(false)
+  registeredAt DateTime @default(now()) @map("registered_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId]) // one registration per user per event
+  @@map("registrations")
+}
+
+// ─────────────────────────────────────────────
+// FEEDBACK
+// ─────────────────────────────────────────────
+
+model Feedback {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  eventId     String   @map("event_id")
+  rating      Int      // 1–5
+  comments    String?
+  submittedAt DateTime @default(now()) @map("submitted_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId]) // one feedback per user per event
+  @@map("feedback")
+}
+
+// ─────────────────────────────────────────────
+// LEADERBOARD SCORES (computed, stored nightly)
+// ─────────────────────────────────────────────
+
+model LeaderboardScore {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  githubScore Float    @default(0) @map("github_score")
+  lcScore     Float    @default(0) @map("lc_score")
+  eventScore  Float    @default(0) @map("event_score")
+  totalScore  Float    @default(0) @map("total_score")
+  rank        Int?
+  computedAt  DateTime @default(now()) @map("computed_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("leaderboard_scores")
+}
+
+// ─────────────────────────────────────────────
+// SCORE WEIGHTS (admin-configurable)
+// ─────────────────────────────────────────────
+
+model ScoreWeight {
+  id            String   @id @default(uuid())
+  githubWeight  Float    @default(0.33) @map("github_weight")
+  lcWeight      Float    @default(0.33) @map("lc_weight")
+  eventWeight   Float    @default(0.34) @map("event_weight")
+  updatedBy     String?  @map("updated_by") // user id of last admin to change it
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("score_weights")
+}
+
+// ─────────────────────────────────────────────
+// PROJECTS
+// ─────────────────────────────────────────────
+
+model Project {
+  id            String        @id @default(uuid())
+  leadId        String        @map("lead_id")
+  title         String
+  description   String?
+  status        ProjectStatus @default(planning)
+  progressPct   Int           @default(0) @map("progress_pct") // 0–100
+  githubRepoUrl String?       @map("github_repo_url")
+  techStack     Json          @default("[]") @map("tech_stack")  // string[]
+  milestones    Json          @default("[]") // { label: string, done: boolean }[]
+  isApproved    Boolean       @default(false) @map("is_approved")
+  submittedAt   DateTime      @default(now()) @map("submitted_at")
+  updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at")
+
+  lead    User            @relation("ProjectLead", fields: [leadId], references: [id])
+  members ProjectMember[]
+
+  @@map("projects")
+}
+
+// ─────────────────────────────────────────────
+// PROJECT MEMBERS (User <-> Project junction)
+// ─────────────────────────────────────────────
+
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  userId    String   @map("user_id")
+  role      String?  // e.g. "frontend", "backend", "ml", "lead"
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId]) // one membership per user per project
+  @@map("project_members")
+}
