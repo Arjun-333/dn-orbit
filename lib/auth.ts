@@ -14,7 +14,6 @@ declare module "next-auth" {
       accessToken?: string;
     } & DefaultSession["user"];
   }
-
   interface User {
     role: "admin" | "member";
     usn: string | null;
