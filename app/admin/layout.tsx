@@ -67,7 +67,7 @@ export default async function AdminLayout({
            
            <div className="space-y-2">
               <div className="text-[8px] text-zinc-800 font-bold tracking-widest uppercase">System_State: Nominal</div>
-              <TacticalButton variant="outline" size="sm" prefix="[!" className="w-full border-red-900 text-red-900 hover:bg-red-900 hover:text-white group">
+              <TacticalButton variant="danger" size="sm" prefix="[!" className="w-full group">
                 TERMINATE
               </TacticalButton>
            </div>
