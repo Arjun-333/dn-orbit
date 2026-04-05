@@ -1,5 +1,4 @@
-// lib/github.ts
-// Module 2 — GitHub Stats Integration
+// Module 2 - GitHub Stats Integration
 // Fetches public repos, commits, PRs, stars, and top languages
 // from the GitHub API using the user's OAuth access token.
 
@@ -14,7 +13,7 @@ export interface GitHubStats {
   topLanguages: Record<string, number>; // { "TypeScript": 12400, "Python": 3200 }
 }
 
-// ─── REST: fetch basic user info + repos ─────────────────────────────────────
+// REST: fetch basic user info + repos
 
 async function fetchUserRepos(
   username: string,
@@ -75,7 +74,7 @@ async function fetchUserRepos(
   };
 }
 
-// ─── REST: fetch merged PRs count (via Search API) ───────────────────────────
+// REST: fetch merged PRs count
 
 async function fetchMergedPRs(username: string, token: string): Promise<number> {
   const res = await fetch(
@@ -96,7 +95,7 @@ async function fetchMergedPRs(username: string, token: string): Promise<number> 
   return data.total_count as number;
 }
 
-// ─── GraphQL: fetch total commits (contributions) ────────────────────────────
+// GraphQL: fetch total commits
 // GitHub's REST API doesn't expose total commits easily.
 // GraphQL contributionsCollection gives us the real number.
 
@@ -139,7 +138,7 @@ async function fetchTotalCommits(username: string, token: string): Promise<numbe
   return total as number;
 }
 
-// ─── Main export: fetch everything ───────────────────────────────────────────
+// Main export: fetch everything
 
 export async function fetchGitHubStats(
   username: string,

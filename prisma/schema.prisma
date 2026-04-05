@@ -1,20 +1,12 @@
-// This is your Prisma schema file
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
-
-// ─────────────────────────────────────────────
 // ENUMS
-// ─────────────────────────────────────────────
 
 enum Role {
   admin
@@ -28,45 +20,88 @@ enum ProjectStatus {
   stalled
 }
 
-// ─────────────────────────────────────────────
-// USERS — central hub
-// ─────────────────────────────────────────────
+// USERS
 
 model User {
-  id              String   @id @default(uuid())
-  githubId        String   @unique @map("github_id")
-  githubUsername  String   @unique @map("github_username")
-  email           String   @unique
-  name            String
-  avatarUrl       String?  @map("avatar_url")
-  role            Role     @default(member)
+  id            String   @id @default(cuid())
 
-  // Onboarding fields
-  lcUsername      String?  @map("lc_username")
+  // Auth.js required
+  name          String?
+  email         String?  @unique
+  emailVerified DateTime?
+  image         String?
+
+  // Your fields
+  githubId        String?   @unique @map("github_id")
+  githubUsername  String?   @unique @map("github_username")
+  avatarUrl       String?   @map("avatar_url")
+  role            Role      @default(member)
+
+  lcUsername      String?   @map("lc_username")
   branch          String?
   year            Int?
   usn             String?
   bio             String?
-  isVisible       Boolean  @default(true) @map("is_visible")
+  isVisible       Boolean   @default(true) @map("is_visible")
 
-  createdAt       DateTime @default(now()) @map("created_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
 
-  // Relations
-  githubStats       GithubStats[]
-  lcStats           LcStats[]
-  leaderboardScore  LeaderboardScore?
-  createdEvents     Event[]           @relation("EventCreator")
-  registrations     Registration[]
-  feedback          Feedback[]
-  ledProjects       Project[]         @relation("ProjectLead")
+  // Auth relations
+  accounts Account[]
+  sessions Session[]
+
+  // Your relations
+  githubStats        GithubStats[]
+  lcStats            LcStats[]
+  leaderboardScore   LeaderboardScore?
+  createdEvents      Event[]           @relation("EventCreator")
+  registrations      Registration[]
+  feedback           Feedback[]
+  ledProjects        Project[]         @relation("ProjectLead")
   projectMemberships ProjectMember[]
 
   @@map("users")
 }
 
-// ─────────────────────────────────────────────
+// AUTH MODELS
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 // GITHUB STATS
-// ─────────────────────────────────────────────
 
 model GithubStats {
   id           String   @id @default(uuid())
@@ -75,7 +110,7 @@ model GithubStats {
   totalCommits Int      @default(0) @map("total_commits")
   totalPrs     Int      @default(0) @map("total_prs")
   totalStars   Int      @default(0) @map("total_stars")
-  topLanguages Json     @default("[]") @map("top_languages") // string[]
+  topLanguages Json     @default("[]") @map("top_languages")
   fetchedAt    DateTime @default(now()) @map("fetched_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -83,9 +118,7 @@ model GithubStats {
   @@map("github_stats")
 }
 
-// ─────────────────────────────────────────────
 // LEETCODE STATS
-// ─────────────────────────────────────────────
 
 model LcStats {
   id           String   @id @default(uuid())
@@ -103,9 +136,7 @@ model LcStats {
   @@map("lc_stats")
 }
 
-// ─────────────────────────────────────────────
 // EVENTS
-// ─────────────────────────────────────────────
 
 model Event {
   id          String   @id @default(uuid())
@@ -126,9 +157,7 @@ model Event {
   @@map("events")
 }
 
-// ─────────────────────────────────────────────
-// REGISTRATIONS (User <-> Event junction)
-// ─────────────────────────────────────────────
+// REGISTRATIONS
 
 model Registration {
   id           String   @id @default(uuid())
@@ -140,32 +169,28 @@ model Registration {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, eventId]) // one registration per user per event
+  @@unique([userId, eventId])
   @@map("registrations")
 }
 
-// ─────────────────────────────────────────────
 // FEEDBACK
-// ─────────────────────────────────────────────
 
 model Feedback {
   id          String   @id @default(uuid())
   userId      String   @map("user_id")
   eventId     String   @map("event_id")
-  rating      Int      // 1–5
+  rating      Int
   comments    String?
   submittedAt DateTime @default(now()) @map("submitted_at")
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, eventId]) // one feedback per user per event
+  @@unique([userId, eventId])
   @@map("feedback")
 }
 
-// ─────────────────────────────────────────────
-// LEADERBOARD SCORES (computed, stored nightly)
-// ─────────────────────────────────────────────
+// LEADERBOARD
 
 model LeaderboardScore {
   id          String   @id @default(uuid())
@@ -182,24 +207,20 @@ model LeaderboardScore {
   @@map("leaderboard_scores")
 }
 
-// ─────────────────────────────────────────────
-// SCORE WEIGHTS (admin-configurable)
-// ─────────────────────────────────────────────
+// SCORE WEIGHTS
 
 model ScoreWeight {
-  id            String   @id @default(uuid())
-  githubWeight  Float    @default(0.33) @map("github_weight")
-  lcWeight      Float    @default(0.33) @map("lc_weight")
-  eventWeight   Float    @default(0.34) @map("event_weight")
-  updatedBy     String?  @map("updated_by") // user id of last admin to change it
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  githubWeight Float    @default(0.33) @map("github_weight")
+  lcWeight     Float    @default(0.33) @map("lc_weight")
+  eventWeight  Float    @default(0.34) @map("event_weight")
+  updatedBy    String?  @map("updated_by")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@map("score_weights")
 }
 
-// ─────────────────────────────────────────────
 // PROJECTS
-// ─────────────────────────────────────────────
 
 model Project {
   id            String        @id @default(uuid())
@@ -207,10 +228,10 @@ model Project {
   title         String
   description   String?
   status        ProjectStatus @default(planning)
-  progressPct   Int           @default(0) @map("progress_pct") // 0–100
+  progressPct   Int           @default(0) @map("progress_pct")
   githubRepoUrl String?       @map("github_repo_url")
-  techStack     Json          @default("[]") @map("tech_stack")  // string[]
-  milestones    Json          @default("[]") // { label: string, done: boolean }[]
+  techStack     Json          @default("[]") @map("tech_stack")
+  milestones    Json          @default("[]")
   isApproved    Boolean       @default(false) @map("is_approved")
   submittedAt   DateTime      @default(now()) @map("submitted_at")
   updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at")
@@ -221,20 +242,18 @@ model Project {
   @@map("projects")
 }
 
-// ─────────────────────────────────────────────
-// PROJECT MEMBERS (User <-> Project junction)
-// ─────────────────────────────────────────────
+// PROJECT MEMBERS
 
 model ProjectMember {
   id        String   @id @default(uuid())
   projectId String   @map("project_id")
   userId    String   @map("user_id")
-  role      String?  // e.g. "frontend", "backend", "ml", "lead"
+  role      String?
   joinedAt  DateTime @default(now()) @map("joined_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, userId]) // one membership per user per project
+  @@unique([projectId, userId])
   @@map("project_members")
 }

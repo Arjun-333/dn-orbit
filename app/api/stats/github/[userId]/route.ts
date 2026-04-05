@@ -1,5 +1,4 @@
-// app/api/stats/github/[userId]/route.ts
-// Module 2 — GitHub Stats Integration
+// Module 2 - GitHub Stats Integration
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
@@ -14,7 +13,7 @@ export async function GET(
 ) {
   const { userId } = params;
 
-  // ── 1. Auth check ──────────────────────────────────────────
+  // 1. Auth check
   const session = await auth();
 
   if (!session?.user) {
@@ -28,7 +27,7 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // ── 2. Get user + GitHub username ──────────────────────────
+  // 2. Get user + GitHub username
   const user = await db.user.findUnique({
     where: { id: userId },
     select: {
@@ -48,7 +47,7 @@ export async function GET(
     );
   }
 
-  // ── 3. Check cache ─────────────────────────────────────────
+  // 3. Check cache
   const cached = await db.githubStats.findFirst({
     where: { userId },
     orderBy: { fetchedAt: "desc" },
@@ -68,7 +67,7 @@ export async function GET(
     });
   }
 
-  // ── 4. Fetch from GitHub API ───────────────────────────────
+  // 4. Fetch from GitHub API
   const accessToken = session.user.accessToken;
 
   if (!accessToken) {
@@ -89,7 +88,7 @@ export async function GET(
     );
   }
 
-  // ── 5. Save to DB ─────────────────────────────────────────
+  // 5. Save to DB
   const statsData = {
     reposCount: stats.reposCount,
     totalCommits: stats.totalCommits,
@@ -110,7 +109,7 @@ export async function GET(
         data: { userId, ...statsData },
       });
 
-  // ── 6. Return response (WITH githubUsername) ───────────────
+  // 6. Return response
   return NextResponse.json({
     data: {
       ...saved,
