@@ -79,7 +79,7 @@ export function MemberTable({ initialMembers }: MemberTableProps) {
             prefix=""
             disabled={isPending}
             onClick={() => handleRoleToggle(m.id, m.role)}
-            className={m.role === 'admin' ? 'border-red-900 text-red-900 hover:bg-red-900 hover:text-white' : ''}
+            className={m.role === 'admin' ? 'border-red-900 text-red-500 hover:bg-red-600 hover:text-white hover:border-red-600' : ''}
           >
             {m.role === 'admin' ? "REVOKE_ADMIN" : "GRANT_ADMIN"}
           </TacticalButton>
