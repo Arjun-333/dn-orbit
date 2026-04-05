@@ -36,18 +36,24 @@ export function MemberTable({ initialMembers }: MemberTableProps) {
 
   const columns = [
     { 
+      key: "name",
       header: "01_IDENTIFIER", 
-      accessor: (m: Member) => (
+      render: (m: Member) => (
         <div className="flex flex-col">
           <span className="text-white font-black">{m.name || "UNNAMED_NODE"}</span>
           <span className="text-[9px] text-zinc-600 tracking-tighter">{m.email}</span>
         </div>
       ) 
     },
-    { header: "02_USN", accessor: (m: Member) => m.usn },
     { 
+      key: "usn",
+      header: "02_USN", 
+      render: (m: Member) => m.usn || "N_A" 
+    },
+    { 
+      key: "role",
       header: "03_CLEARANCE", 
-      accessor: (m: Member) => (
+      render: (m: Member) => (
         <div className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
           m.role === 'admin' 
             ? 'bg-white text-black border-white' 
@@ -58,23 +64,26 @@ export function MemberTable({ initialMembers }: MemberTableProps) {
       ) 
     },
     { 
+      key: "branch",
       header: "04_SECTOR", 
-      accessor: (m: Member) => m.branch ? `${m.branch}_${m.year}Y` : "N/A" 
+      render: (m: Member) => m.branch ? `${m.branch}_${m.year}Y` : "N/A" 
     },
     { 
+      key: "actions",
       header: "05_ACTIONS", 
-      className: "text-right",
-      accessor: (m: Member) => (
-        <TacticalButton 
-          variant="outline" 
-          size="sm" 
-          prefix=""
-          disabled={isPending}
-          onClick={() => handleRoleToggle(m.id, m.role)}
-          className={m.role === 'admin' ? 'border-red-900 text-red-900 hover:bg-red-900 hover:text-white' : ''}
-        >
-          {m.role === 'admin' ? "REVOKE_ADMIN" : "GRANT_ADMIN"}
-        </TacticalButton>
+      render: (m: Member) => (
+        <div className="text-right">
+          <TacticalButton 
+            variant="outline" 
+            size="sm" 
+            prefix=""
+            disabled={isPending}
+            onClick={() => handleRoleToggle(m.id, m.role)}
+            className={m.role === 'admin' ? 'border-red-900 text-red-900 hover:bg-red-900 hover:text-white' : ''}
+          >
+            {m.role === 'admin' ? "REVOKE_ADMIN" : "GRANT_ADMIN"}
+          </TacticalButton>
+        </div>
       ) 
     }
   ];

@@ -1,5 +1,3 @@
-"use client";
-
 import React from 'react';
 
 interface TacticalCardProps {
@@ -19,18 +17,10 @@ export const TacticalCard = ({
   children, 
   className, 
   status, 
-  id: initialId, 
+  id = "ARCHIVE_ID: 0xSTATIC", 
   timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '.'),
   variant = 'default'
 }: TacticalCardProps) => {
-  const [id, setId] = React.useState(initialId || "ARCHIVE_ID: 0x----");
-
-  React.useEffect(() => {
-    if (!initialId) {
-      setId("ARCHIVE_ID: 0x" + Math.random().toString(16).slice(2, 6).toUpperCase());
-    }
-  }, [initialId]);
-
   const borderStyles = variant === 'dashed' ? 'border-dashed border-zinc-600' : 'border-zinc-800';
   
   return (

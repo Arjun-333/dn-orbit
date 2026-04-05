@@ -45,8 +45,9 @@ export function EventTable({ initialEvents }: EventTableProps) {
 
   const columns = [
     { 
+      key: "title",
       header: "01_EVENT_IDENTIFIER", 
-      accessor: (e: Event) => (
+      render: (e: Event) => (
         <div className="flex flex-col">
           <span className="text-white font-black">{e.title}</span>
           <span className="text-[9px] text-zinc-600 tracking-tighter uppercase">{e.eventType || "GENERAL_ASSEMBLY"}</span>
@@ -54,13 +55,19 @@ export function EventTable({ initialEvents }: EventTableProps) {
       ) 
     },
     { 
+      key: "eventDate",
       header: "02_DATE_STAMP", 
-      accessor: (e: Event) => new Date(e.eventDate).toLocaleDateString() 
+      render: (e: Event) => new Date(e.eventDate).toLocaleDateString() 
     },
-    { header: "03_LOCATION", accessor: (e: Event) => e.location || "VIRTUAL_UPLINK" },
     { 
+      key: "location",
+      header: "03_LOCATION", 
+      render: (e: Event) => e.location || "VIRTUAL_UPLINK" 
+    },
+    { 
+      key: "status",
       header: "04_STATE", 
-      accessor: (e: Event) => (
+      render: (e: Event) => (
         <div className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
           e.isPublished 
             ? 'bg-white text-black border-white' 
@@ -71,10 +78,10 @@ export function EventTable({ initialEvents }: EventTableProps) {
       ) 
     },
     { 
+      key: "actions",
       header: "05_TACTICAL_CONTROLS", 
-      className: "text-right",
-      accessor: (e: Event) => (
-        <div className="flex justify-end gap-2">
+      render: (e: Event) => (
+        <div className="flex justify-end gap-2 text-right">
           <TacticalButton 
             variant="outline" 
             size="sm" 

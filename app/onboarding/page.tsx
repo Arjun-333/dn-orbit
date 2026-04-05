@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { TacticalCard } from "@/components/ui/TacticalCard";
 import { TacticalButton } from "@/components/ui/TacticalButton";
 import { completeOnboarding } from "./actions";
+import { TacticalLoading } from "@/components/ui/TacticalLoading";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -31,6 +32,8 @@ export default function OnboardingPage() {
 
   return (
     <main className="min-h-screen bg-black font-mono text-white selection:bg-white selection:text-black flex flex-col p-8 space-y-12">
+      {isPending && <TacticalLoading message="INITIATING_SESSION_SYNC" />}
+      
       {/* Noise Texture */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[100] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
 

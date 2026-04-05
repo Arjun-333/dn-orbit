@@ -1,11 +1,9 @@
-"use client";
-
 import React from 'react';
 
 interface Column<T> {
+  key: string;
   header: string;
-  accessor: keyof T | ((item: T) => React.ReactNode);
-  className?: string;
+  render?: (item: T) => React.ReactNode;
 }
 
 interface TacticalTableProps<T> {
@@ -19,24 +17,17 @@ export function TacticalTable<T extends { id: string | number }>({
   data, 
   columns, 
   onRowClick,
-  id: initialId
+  id = "TBL_STATIC"
 }: TacticalTableProps<T>) {
-  const [id, setId] = React.useState(initialId || "TBL_----");
-
-  React.useEffect(() => {
-    if (!initialId) {
-      setId("TBL_" + Math.random().toString(16).slice(2, 6).toUpperCase());
-    }
-  }, [initialId]);
   return (
     <div className="w-full font-mono text-white overflow-x-auto border border-zinc-900 bg-black">
       <table className="w-full border-collapse">
-        <thead className="bg-zinc-950/50 border-b border-zinc-800">
-          <tr>
-            {columns.map((col, i) => (
+        <thead>
+          <tr className="border-b border-zinc-900 bg-zinc-950">
+            {columns.map((col) => (
               <th 
-                key={i} 
-                className={`px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 ${col.className}`}
+                key={col.key}
+                className="text-left py-4 px-6 text-[10px] uppercase tracking-widest font-black text-zinc-500 border-r border-zinc-900 last:border-r-0"
               >
                 {col.header}
               </th>
@@ -46,25 +37,26 @@ export function TacticalTable<T extends { id: string | number }>({
         <tbody className="divide-y divide-zinc-900">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-6 py-12 text-center text-xs text-zinc-700 uppercase tracking-widest italic">
-                 NO_DATA_FOUND_IN_SECTOR_"{id}"
+              <td 
+                colSpan={columns.length} 
+                className="py-12 text-center text-[10px] uppercase tracking-[0.3em] text-zinc-700 italic"
+              >
+                NO_RECORDS_FOUND_IN_{id}
               </td>
             </tr>
           ) : (
-            data.map((item, rowIndex) => (
+            data.map((item, idx) => (
               <tr 
                 key={item.id} 
-                onClick={() => onRowClick?.(item)}
-                className={`group hover:bg-white/[0.03] transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+                onClick={() => onRowClick && onRowClick(item)}
+                className={`group hover:bg-zinc-950 transition-colors cursor-pointer ${onRowClick ? 'cursor-pointer' : 'cursor-default'}`}
               >
-                {columns.map((col, colIndex) => (
+                {columns.map((col) => (
                   <td 
-                    key={colIndex} 
-                    className={`px-6 py-4 text-xs font-bold uppercase tracking-widest text-zinc-400 group-hover:text-white transition-colors ${col.className}`}
+                    key={col.key}
+                    className="py-4 px-6 text-xs font-bold border-r border-zinc-900 last:border-r-0 group-hover:border-white/10"
                   >
-                    {typeof col.accessor === 'function' 
-                      ? col.accessor(item) 
-                      : (item[col.accessor] as React.ReactNode)}
+                    {col.render ? col.render(item) : (item as any)[col.key]}
                   </td>
                 ))}
               </tr>
@@ -73,10 +65,16 @@ export function TacticalTable<T extends { id: string | number }>({
         </tbody>
       </table>
       
-      {/* Table Footer Meta */}
-      <div className="px-6 py-3 bg-zinc-950/30 flex items-center justify-between border-t border-zinc-900">
-         <span className="text-[8px] text-zinc-700 font-black tracking-[0.5em] uppercase">TABLE_ID: {id}</span>
-         <span className="text-[8px] text-zinc-700 font-black tracking-[0.5em] uppercase">ENTRIES: {data.length}</span>
+      {/* Table Metadata Footer */}
+      <div className="border-t border-zinc-900 bg-zinc-950/50 p-2 flex items-center justify-between">
+        <span className="text-[8px] text-zinc-700 tracking-widest uppercase">
+          {id} // ADDR_0x{data.length.toString(16).padStart(4, '0').toUpperCase()}
+        </span>
+        <div className="flex gap-1">
+          <div className="w-1 h-1 bg-zinc-800" />
+          <div className="w-1 h-1 bg-zinc-800" />
+          <div className="w-1 h-1 bg-zinc-600" />
+        </div>
       </div>
     </div>
   );
