@@ -1,26 +1,21 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { TacticalCard } from "@/components/ui/TacticalCard";
 import { TacticalButton } from "@/components/ui/TacticalButton";
 import { completeOnboarding } from "./actions";
 import { TacticalLoading } from "@/components/ui/TacticalLoading";
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   async function handleSubmit(formData: FormData) {
     startTransition(async () => {
       try {
         await completeOnboarding(formData);
-        // Force a hard reload to ensure the new session is picked up by the browser
         window.location.href = "/";
-      } catch (err: any) {
-        // Next.js redirect() throws an error, but in a Server Action, 
-        // we can also catch it here if we want to handle the client side.
-        if (err.message === "NEXT_REDIRECT") {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message === "NEXT_REDIRECT") {
           window.location.href = "/";
           return;
         }
@@ -34,10 +29,8 @@ export default function OnboardingPage() {
     <main className="min-h-screen bg-black font-mono text-white selection:bg-white selection:text-black flex flex-col p-8 space-y-12">
       {isPending && <TacticalLoading message="INITIATING_SESSION_SYNC" />}
       
-      {/* Noise Texture */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[100] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
 
-      {/* Header */}
       <header className="border-b border-zinc-900 pb-12 max-w-4xl mx-auto w-full">
         <div className="space-y-4">
           <h1 className="text-8xl font-black uppercase tracking-tighter leading-none italic group">
@@ -51,14 +44,13 @@ export default function OnboardingPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto w-full">
 
-        {/* Left Side: Meta Info */}
         <div className="space-y-6">
           <TacticalCard status="LVL_0_UPLINK" variant="dashed" className="group">
             <div className="flex flex-col gap-4">
               <div className="w-10 h-10 border border-white/20 flex items-center justify-center bg-zinc-950">
                 <span className="text-xl">!</span>
               </div>
-              <p className="text-[10px] text-zinc-500 uppercase leading-relaxed tracking-widest leading-loose">
+              <p className="text-[10px] text-zinc-500 uppercase leading-relaxed tracking-widest">
                 Access to the CS_ARCHIVE requires physical and digital verification. Your data will be encrypted using the THF PROTOCOL X-94.
               </p>
             </div>
@@ -78,7 +70,6 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* Center/Right Form: The Action Area */}
         <div className="md:col-span-2">
           <form action={handleSubmit} className="space-y-12">
 
