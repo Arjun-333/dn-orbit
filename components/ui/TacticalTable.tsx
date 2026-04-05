@@ -49,7 +49,7 @@ export function TacticalTable<T extends { id: string | number }>({
               <tr 
                 key={item.id} 
                 onClick={() => onRowClick && onRowClick(item)}
-                className={`group hover:bg-zinc-950 transition-colors cursor-pointer ${onRowClick ? 'cursor-pointer' : 'cursor-default'}`}
+                className={`group hover:bg-zinc-950 transition-colors ${onRowClick ? 'cursor-pointer' : 'cursor-default'}`}
               >
                 {columns.map((col) => (
                   <td 
@@ -68,7 +68,7 @@ export function TacticalTable<T extends { id: string | number }>({
       {/* Table Metadata Footer */}
       <div className="border-t border-zinc-900 bg-zinc-950/50 p-2 flex items-center justify-between">
         <span className="text-[8px] text-zinc-700 tracking-widest uppercase">
-          {id} {"//"} ADDR_0x{data.length.toString(16).padStart(4, '0').toUpperCase()}
+          {id} ADDR_0x{data.length.toString(16).padStart(4, '0').toUpperCase()}
         </span>
         <div className="flex gap-1">
           <div className="w-1 h-1 bg-zinc-800" />
