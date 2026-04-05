@@ -38,12 +38,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.usn = user.usn;
       }
+      
+      // If we are updating the session, or just to keep it fresh
+      if (token.id) {
+        const dbUser = await db.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, usn: true }
+        });
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.usn = dbUser.usn;
+        }
+      }
+
       if (account) {
         token.accessToken = account.access_token;
       }
