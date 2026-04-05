@@ -14,10 +14,15 @@ export default function OnboardingPage() {
     startTransition(async () => {
       try {
         await completeOnboarding(formData);
-        // We force a refresh to ensure the session update is picked up
-        router.refresh();
+        // Force a hard reload to ensure the new session is picked up by the browser
+        window.location.href = "/";
       } catch (err: any) {
-        if (err.message === "NEXT_REDIRECT") return;
+        // Next.js redirect() throws an error, but in a Server Action, 
+        // we can also catch it here if we want to handle the client side.
+        if (err.message === "NEXT_REDIRECT") {
+          window.location.href = "/";
+          return;
+        }
         console.error("Submission failed:", err);
         alert("UPLINK_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN_ERROR"));
       }
