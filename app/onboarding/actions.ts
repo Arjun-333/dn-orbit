@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { auth, unstable_update } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -39,11 +39,15 @@ export async function completeOnboarding(formData: FormData) {
     },
   });
 
-  // Revalidate to clear any caches
-  revalidatePath("/");
-  
-  // Note: JWT session won't update its data immediately in middleware/proxy
-  // until next sign-in or session update. 
-  // However, redirecting to home will let the app/page.tsx logic run again.
+  // 4. Force session update for the cookie
+  await unstable_update({
+    user: {
+      ...session.user,
+      usn,
+    },
+  });
+
+  // 5. Revalidate and redirect
+  revalidatePath("/", "layout");
   redirect("/");
 }
