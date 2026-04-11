@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useTransition } from "react";
+import React, { useTransition, useOptimistic, useState } from "react";
 import { TacticalTable } from "@/components/ui/TacticalTable";
 import { TacticalButton } from "@/components/ui/TacticalButton";
+import { TacticalFeedback } from "@/components/ui/TacticalFeedback";
 import { approveProject, deleteProject } from "./actions";
 
 interface Project {
@@ -24,13 +25,32 @@ interface ProjectTableProps {
 
 export function ProjectTable({ initialProjects }: ProjectTableProps) {
   const [isPending, startTransition] = useTransition();
+  const [feedback, setFeedback] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const [optimisticProjects, addOptimisticAction] = useOptimistic(
+    initialProjects,
+    (state, action: { type: 'approve' | 'delete', id: string }) => {
+      if (action.type === 'approve') {
+        return state.map(p => p.id === action.id ? { ...p, isApproved: true } : p);
+      }
+      if (action.type === 'delete') {
+        return state.filter(p => p.id !== action.id);
+      }
+      return state;
+    }
+  );
 
   const handleApprove = async (id: string) => {
     startTransition(async () => {
+      addOptimisticAction({ type: 'approve', id });
       try {
         await approveProject(id);
+        setFeedback({ message: "PROJECT_CLEARANCE_GRANTHED", type: "success" });
       } catch (err) {
-        alert("APPROVE_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        setFeedback({ 
+          message: "APPROVE_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"), 
+          type: "error" 
+        });
       }
     });
   };
@@ -38,10 +58,15 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
   const handleDelete = async (id: string) => {
     if (!confirm("CONFIRM_PROJECT_DELETION? THIS ACTION IS IRREVERSIBLE.")) return;
     startTransition(async () => {
+      addOptimisticAction({ type: 'delete', id });
       try {
         await deleteProject(id);
+        setFeedback({ message: "PROJECT_RECORD_ERASED", type: "success" });
       } catch (err) {
-        alert("DELETION_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        setFeedback({ 
+          message: "DELETION_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"), 
+          type: "error" 
+        });
       }
     });
   };
@@ -122,5 +147,15 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
     }
   ];
 
-  return <TacticalTable data={initialProjects} columns={columns} id="PRJ_REGISTRY_V2" />;
+  return (
+    <>
+      <TacticalTable data={optimisticProjects} columns={columns} id="PRJ_REGISTRY_V2" />
+      <TacticalFeedback 
+        key={feedback?.message || "none"}
+        message={feedback?.message || null} 
+        type={feedback?.type || "success"} 
+        onClear={() => setFeedback(null)}
+      />
+    </>
+  );
 }
