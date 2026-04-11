@@ -9,9 +9,15 @@ interface SignOutButtonProps {
 }
 
 export function SignOutButton({ children, className }: SignOutButtonProps) {
+  const handleSignOut = async () => {
+    // Clear session and redirect, then force reload to purge any stale state
+    await signOut({ redirect: true, callbackUrl: "/login" });
+    window.location.reload();
+  };
+
   return (
     <button
-      onClick={() => signOut({ callbackUrl: "/login" })}
+      onClick={handleSignOut}
       className={className}
     >
       {children}

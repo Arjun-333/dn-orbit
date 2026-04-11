@@ -1,10 +1,8 @@
-//updated
 import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 import type { Adapter } from "next-auth/adapters";
-import type { DefaultSession } from "next-auth";
+import authConfig from "@/auth.config";
 
 declare module "next-auth" {
   interface Session {
@@ -13,40 +11,36 @@ declare module "next-auth" {
       role: "admin" | "member";
       usn: string | null;
       accessToken?: string;
-    } & DefaultSession["user"];
+    } & import("next-auth").DefaultSession["user"];
   }
   interface User {
-    role: "admin" | "member";
-    usn: string | null;
+    id?: string;
+    role?: "admin" | "member";
+    usn?: string | null;
   }
 }
 
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   adapter: PrismaAdapter(db) as Adapter,
-  session: {
-    strategy: "jwt",
-  },
-  providers: [
-    GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: "read:user user:email repo",
-        },
-      },
-    }),
-  ],
+  session: { strategy: "jwt" },
+  ...authConfig,
   callbacks: {
+    ...authConfig.callbacks,
     async jwt({ token, user, account }) {
+      // First sign in
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.usn = user.usn;
       }
       
-      // If we are updating the session, or just to keep it fresh
-      if (token.id) {
+      // Persist access token
+      if (account) {
+        token.accessToken = account.access_token;
+      }
+
+      // Sync with DB if needed (only in non-edge runtime)
+      if (token.id && typeof window === 'undefined') {
         const dbUser = await db.user.findUnique({
           where: { id: token.id as string },
           select: { role: true, usn: true }
@@ -57,16 +51,15 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         }
       }
 
-      if (account) {
-        token.accessToken = account.access_token;
-      }
       return token;
     },
     async session({ session, token }) {
-      session.user.id = token.id as string;
-      session.user.role = token.role as "admin" | "member";
-      session.user.usn = token.usn as string | null;
-      session.user.accessToken = token.accessToken as string;
+      if (token && session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as "admin" | "member";
+        session.user.usn = token.usn as string | null;
+        session.user.accessToken = token.accessToken as string;
+      }
       return session;
     },
   },

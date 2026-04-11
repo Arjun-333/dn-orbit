@@ -1,33 +1,10 @@
 import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/github";
 import { NextRequest, NextResponse } from "next/server";
-import type { Session } from "next-auth";
+import authConfig from "@/auth.config";
 
-// We re-declare auth here to avoid loading Prisma in the Edge runtime
-const { auth } = NextAuth({
-  providers: [GitHub({
-    clientId: process.env.GITHUB_CLIENT_ID!,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-  })],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role;
-        token.usn = user.usn;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.role = token.role as "admin" | "member";
-        session.user.usn = token.usn as string | null;
-      }
-      return session;
-    },
-  },
-});
+const { auth } = NextAuth(authConfig);
 
-export default auth((req: NextRequest & { auth: Session | null }) => {
+export default auth((req: NextRequest & { auth: any }) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
   const user = req.auth?.user;
