@@ -1,10 +1,11 @@
 import NextAuth from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import authConfig from "@/auth.config";
+import type { Session } from "next-auth";
 
 const { auth } = NextAuth(authConfig);
 
-export default auth((req: NextRequest & { auth: any }) => {
+export default auth((req: NextRequest & { auth: Session | null }) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
   const user = req.auth?.user;
