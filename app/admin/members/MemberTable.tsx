@@ -72,7 +72,7 @@ export function MemberTable({ initialMembers, currentUserId }: MemberTableProps)
       key: "role",
       header: "ROLE", 
       render: (m: Member) => (
-        <div className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
+        <div className={`px-2 py-0.5 inline-block text-[9px] font-black border transition-all duration-300 ${
           m.role === 'admin' 
             ? 'bg-white text-black border-white' 
             : 'bg-transparent text-zinc-500 border-zinc-800'

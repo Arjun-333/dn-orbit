@@ -16,6 +16,14 @@ export type AuditAction =
 
 export type AuditResource = "project" | "user" | "event" | "config";
 
+/**
+ * Records an administrative action in the persistent audit registry.
+ * 
+ * @param action - The category of action performed
+ * @param resource - The type of resource affected
+ * @param resourceId - The ID of the entity affected
+ * @param metadata - Optional key-value pairs for additional context
+ */
 export async function logAction(
   action: AuditAction,
   resource: AuditResource,
@@ -32,7 +40,7 @@ export async function logAction(
         action,
         resource,
         resourceId,
-        metadata: metadata as Prisma.InputJsonValue,
+        metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : {},
       },
     });
   } catch (err) {
