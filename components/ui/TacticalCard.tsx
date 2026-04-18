@@ -22,7 +22,7 @@ export const TacticalCard = ({
   variant = 'default'
 }: TacticalCardProps) => {
   const borderStyles = variant === 'dashed' ? 'border-dashed border-zinc-600' : 'border-zinc-800';
-  const displayTimestamp = timestamp || "2026.04.05"; // Static or passed from server
+  const displayTimestamp = timestamp || "2026.04.18"; // Mission Date
   
   return (
     <div className={`bg-black p-0 relative font-mono group border ${borderStyles} ${className}`}>
